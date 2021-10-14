@@ -5,6 +5,7 @@ using UnityEngine;
 public class floorplangen : MonoBehaviour
 {
     public Texture2D image;
+    private Dictionary<Vector2Int, bool> marked = new Dictionary<Vector2Int, bool>();
 
     void Start()
     {
@@ -31,7 +32,7 @@ public class floorplangen : MonoBehaviour
         anchorpoint.transform.position = pos;
     }
 
-    void discoverPaths(Vector2Int initPos, string cameFrom = "any", bool progress = true)
+    void discoverPaths(Vector2Int initPos, string cameFrom = "any")
     {
         // Spawn init anchor.
         spawnAnchor(new Vector3(initPos.x, 0, initPos.y), Color.green);
@@ -45,19 +46,19 @@ public class floorplangen : MonoBehaviour
         // Follow Paths.
         if (cameFrom != "down")
         {
-            followPath(initPos, initPos.y + 1, image.height, "up");
+            followPath(initPos, initPos.y + 2, image.height, "up");
         }
         if (cameFrom != "left")
         {
-            followPath(initPos, initPos.x + 1, image.width, "right"); 
+            followPath(initPos, initPos.x + 2, image.width, "right");
         }
         if (cameFrom != "up")
         {
-            followPath(initPos, initPos.y - 1, image.height, "down");
+            followPath(initPos, initPos.y - 2, image.height, "down");
         }
         if (cameFrom != "right")
         {
-            followPath(initPos, initPos.x - 1, image.width, "left");
+            followPath(initPos, initPos.x - 2, image.width, "left");
         }
     }
 
@@ -65,7 +66,6 @@ public class floorplangen : MonoBehaviour
     {
         if (dir == "up" || dir == "right")
         {
-            int lenght = 0;
             for (int i = axis; i < imageProp; i++)
             {
                 Vector3 anchorPos = (dir == "up")
@@ -80,18 +80,11 @@ public class floorplangen : MonoBehaviour
 
                 Color pixel = image.GetPixel((int)anchorPos.x, (int)anchorPos.z);
 
-                if (pixel != Color.black || i + 1 == imageProp)
+                if (pixel != Color.black || i == imageProp)
                 {
                     spawnAnchor(anchorPos, Color.red);
                     int x2 = (dir == "up") ? (int)anchorPos.x : (int)anchorPos.x - 1;
                     int y2 = (dir == "up") ? (int)anchorPos.z - 1 : (int)anchorPos.z;
-                    
-                    /*if (lenght < 10)
-                    {
-                        x2 = initPos.x;
-                        y2 = initPos.y;
-                    }*/
-
                     discoverPaths(new Vector2Int(x2, y2), dir);
                     break;
                 }
@@ -99,13 +92,12 @@ public class floorplangen : MonoBehaviour
                 {
                     GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     cube.transform.position = anchorPos;
-                    lenght++;
+                    marked.Add(new Vector2Int((int)anchorPos.x, (int)anchorPos.z), true);
                 }
             }
         }
         else
         {
-            int lenght = 0;
             for (int i = axis; i > 0; i--)
             {
                 {
@@ -121,17 +113,11 @@ public class floorplangen : MonoBehaviour
 
                     Color pixel = image.GetPixel((int)anchorPos.x, (int)anchorPos.z);
 
-                    if (pixel != Color.black || i - 1 < 0)
+                    if (pixel != Color.black || i < 0)
                     {
                         spawnAnchor(anchorPos, Color.red);
                         int x2 = (dir == "down") ? (int)anchorPos.x : (int)anchorPos.x + 1;
                         int y2 = (dir == "down") ? (int)anchorPos.z + 1 : (int)anchorPos.z;
-                        
-                        /*if (lenght < 10)
-                        {
-                            x2 = initPos.x;
-                            y2 = initPos.y;
-                        }*/
                         discoverPaths(new Vector2Int(x2, y2), dir);
                         break;
                     }
@@ -139,7 +125,6 @@ public class floorplangen : MonoBehaviour
                     {
                         GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
                         cube.transform.position = anchorPos;
-                        lenght++;
                     }
                 }
             }
