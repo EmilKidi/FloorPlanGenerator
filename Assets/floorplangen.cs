@@ -8,6 +8,7 @@ public class floorplangen : MonoBehaviour
     public Texture2D image;
     public int checkFuturePixelsLenght = 10;
     private Dictionary<Vector2Int, bool> marked = new Dictionary<Vector2Int, bool>();
+    private Dictionary<Vector2Int, int[]> anchorPoints = new Dictionary<Vector2Int, int[]>();
 
     private enum directions {
         up = 0,
@@ -16,7 +17,6 @@ public class floorplangen : MonoBehaviour
         left = 3
     }
     private bool[] triedDirections = new bool[4];
-
 
     void Start()
     {
@@ -30,7 +30,7 @@ public class floorplangen : MonoBehaviour
                 {
                     Vector2Int initDiscoverPos = new Vector2Int(i, j);
                     discoverPaths(initDiscoverPos);
-                    //disoverRooms
+                    //disoverRooms()
                     return;
                 }
             }
@@ -42,6 +42,21 @@ public class floorplangen : MonoBehaviour
         GameObject anchorpoint = GameObject.CreatePrimitive(PrimitiveType.Cube);
         anchorpoint.GetComponent<Renderer>().materials[0].SetColor("_Color", col);
         anchorpoint.transform.position = pos;
+
+        // Store the anchorpoint for later use
+        if (col == Color.green)
+        {
+            Vector2Int key = new Vector2Int((int)pos.x, (int)pos.z);
+            int[] value = new int[4] { 0, 0, 0, 0 };
+
+            if (!anchorPoints.ContainsKey(key))
+            {
+                anchorPoints.Add(key, value);
+                GameObject anchorpoint2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                anchorpoint2.GetComponent<Renderer>().materials[0].SetColor("_Color", Color.cyan);
+                anchorpoint2.transform.position = pos;
+            }
+        }
     }
 
     bool isBlack(Color col)
@@ -57,31 +72,55 @@ public class floorplangen : MonoBehaviour
             }
         }
 
-        Debug.Log("Color is black : " + col.r + " " + col.g + " " + col.b);
         return true;
-    }   
+    }
 
     void discoverPaths(Vector2Int initPos)
     {
         // Spawn init anchor.
         spawnAnchor(new Vector3(initPos.x, 0, initPos.y), Color.green);
 
+        // Get tried directions of the current anchorpoint.
+        int[] value;
+        anchorPoints.TryGetValue(initPos, out value);
+
         // Follow Paths.
-        if (triedDirections[(int)directions.up] == false)
+        if (triedDirections[(int)directions.up] == false && (int)value.GetValue((int)directions.up) == 0)
         {
             followPath(initPos, initPos.y + 1, image.height, (int)directions.up);
         }
-        if (triedDirections[(int)directions.right] == false)
+        if (triedDirections[(int)directions.right] == false && (int)value.GetValue((int)directions.right) == 0)
         {
             followPath(initPos, initPos.x + 1, image.width, (int)directions.right);
         }
-        if (triedDirections[(int)directions.down] == false)
+        if (triedDirections[(int)directions.down] == false && (int)value.GetValue((int)directions.down) == 0)
         {
             followPath(initPos, initPos.y - 1, image.height, (int)directions.down);
         }
-        if (triedDirections[(int)directions.left] == false)
+        if (triedDirections[(int)directions.left] == false && (int)value.GetValue((int)directions.left) == 0)
         {
             followPath(initPos, initPos.x - 1, image.width, (int)directions.left);
+        }
+
+        // No more options on this anchorpoint. Check previous for undiscovered paths.
+        bool found = false;
+        Vector2Int unfinishedAnchor = new Vector2Int();
+        foreach (KeyValuePair<Vector2Int, int[]> entry in anchorPoints)
+        {
+            for (int i = 0; i < 4;  i++)
+            {
+                if ((int)entry.Value.GetValue(i) == 0 && !found)
+                {
+                    triedDirections = new bool[4];
+                    unfinishedAnchor = entry.Key;
+                    found = true;
+                }
+            }
+        }
+
+        if (found)
+        {
+           discoverPaths(unfinishedAnchor);
         }
     }
 
@@ -117,6 +156,12 @@ public class floorplangen : MonoBehaviour
 
     void followPath(Vector2Int initPos, int axis, int imageProp, int dir)
     {
+        // Add direction to the current anchor point.
+        if (anchorPoints.ContainsKey(initPos))
+        {
+            anchorPoints[initPos].SetValue(1, dir);
+        }
+
         int x2 = 0;
         int y2 = 0;
 
@@ -124,6 +169,7 @@ public class floorplangen : MonoBehaviour
         {
             for (int i = axis; i < imageProp; i++)
             {
+                
                 Vector3 anchorPos = (dir == (int)directions.up)
                     ? new Vector3(initPos.x, 0, i)
                     : new Vector3(i, 0, initPos.y);
@@ -166,7 +212,17 @@ public class floorplangen : MonoBehaviour
                             break;
                         }
                     }
+
+                    // Reset directions.
                     triedDirections = new bool[4];
+
+                    // We are at the edge of the image. Create a new anchorpoint?
+                    if (i + 1 == imageProp)
+                    {
+                        discoverPaths(new Vector2Int((int)anchorPos.x, (int)anchorPos.z));
+                        break;
+                    }
+
                     x2 = (int)anchorPos.x;
                     y2 = (int)anchorPos.z;
                     GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -223,7 +279,17 @@ public class floorplangen : MonoBehaviour
                                 break;
                             }
                         }
+
+                        // Reset directions.
                         triedDirections = new bool[4];
+
+                        // We are at the edge of the image. Create a new anchorpoint?
+                        if (i - 1 == imageProp)
+                        {
+                            discoverPaths(new Vector2Int((int)anchorPos.x, (int)anchorPos.z));
+                            break;
+                        }
+
                         x2 = (int)anchorPos.x;
                         y2 = (int)anchorPos.z;
                         GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);

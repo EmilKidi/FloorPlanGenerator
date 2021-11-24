@@ -236,7 +236,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   debug: 1
-  image: {fileID: 2800000, guid: 41bdbe82000dacf4dba60d8e49a05517, type: 3}
+  image: {fileID: 2800000, guid: 9e95684eb49ccf543b718ffba70fa744, type: 3}
+  checkFuturePixelsLenght: 10
 --- !u!4 &626657589
 Transform:
   m_ObjectHideFlags: 0
