@@ -6,6 +6,7 @@ public class floorplangen : MonoBehaviour
 {
     public bool debug = false;
     public Texture2D image;
+    public int checkFuturePixelsLenght = 10;
     private Dictionary<Vector2Int, bool> marked = new Dictionary<Vector2Int, bool>();
 
     private enum directions {
@@ -45,7 +46,7 @@ public class floorplangen : MonoBehaviour
 
     bool isBlack(Color col)
     {
-        float maxRange = 1f;
+        float maxRange = 0.9f;
         float[] cols = { col.r, col.g, col.b };
 
         for(int i = 0; i < cols.Length; i++)
@@ -56,6 +57,7 @@ public class floorplangen : MonoBehaviour
             }
         }
 
+        Debug.Log("Color is black : " + col.r + " " + col.g + " " + col.b);
         return true;
     }   
 
@@ -151,6 +153,18 @@ public class floorplangen : MonoBehaviour
                             triedDirections[dir] = true;
                             break;
                         }
+
+                        // Check for the future x pixels to determine if we actually need to build the wall
+                        Vector3 checkFuturePixels = (dir == (int)directions.up)
+                            ? new Vector3(anchorPos.x, 0, anchorPos.z + checkFuturePixelsLenght)
+                            : new Vector3(anchorPos.x + checkFuturePixelsLenght, 0, anchorPos.z);
+
+                        Color futurePixel = image.GetPixel((int)checkFuturePixels.x, (int)checkFuturePixels.z);
+                        if (!isBlack(futurePixel))
+                        {
+                            spawnAnchor(new Vector3(checkFuturePixels.x, 0, checkFuturePixels.z), Color.blue);
+                            break;
+                        }
                     }
                     triedDirections = new bool[4];
                     x2 = (int)anchorPos.x;
@@ -194,6 +208,18 @@ public class floorplangen : MonoBehaviour
                             if (checkBorderPixels(new Vector2Int((int)anchorPos.x, (int)anchorPos.z), dir))
                             {
                                 triedDirections[dir] = true;
+                                break;
+                            }
+
+                            // Check for the future x pixels to determine if we actually need to build the wall
+                            Vector3 checkFuturePixels = (dir == (int)directions.down)
+                                ? new Vector3(anchorPos.x, 0, anchorPos.z - checkFuturePixelsLenght)
+                                : new Vector3(anchorPos.x - checkFuturePixelsLenght, 0, anchorPos.z);
+
+                            Color futurePixel = image.GetPixel((int)checkFuturePixels.x, (int)checkFuturePixels.z);
+                            if (!isBlack(futurePixel))
+                            {
+                                spawnAnchor(new Vector3(checkFuturePixels.x, 0, checkFuturePixels.z), Color.blue);
                                 break;
                             }
                         }
